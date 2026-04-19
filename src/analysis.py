@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
 import torchvision.transforms as transforms
+from torch.utils.data import DataLoader, TensorDataset
 
 validation_dataset = DermaMNIST(split="val", download=True)
 training_dataset = DermaMNIST(split="train", download=True)
@@ -50,3 +51,34 @@ test_tensor = data_transform(test_image)
 val_tensor_flat = val_tensor.flatten(start_dim = 1)
 train_tensor_flat = train_tensor.flatten(start_dim = 1)
 test_tensor_flat = test_tensor.flatten(start_dim = 1)
+
+class MulticlassLogisticRegression(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(MulticlassLogisticRegression, self).__init__()
+        self.linear = nn.Linear(input_size, num_classes)
+    def forward(self, x):
+        out = self.linear(x)
+        return out
+
+model = MulticlassLogisticRegression(BATCH_SIZE, n_classes)
+
+dataloader = DataLoader(training_dataset, batch_size=BATCH_SIZE, shuffle=True)
+
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Training loop
+num_epochs = 100
+for epoch in range(num_epochs):
+    for inputs in val_tensor_flat:
+        # Forward pass
+        outputs = model(inputs)
+        loss = criterion(outputs)
+ 
+        # Backward and optimize
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+ 
+    if (epoch+1) % 10 == 0:
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
