@@ -30,19 +30,23 @@ print(training_dataset)
 #size: 2005
 print(testing_dataset)
 
-image = training_dataset.montage(length=20)
-image.save("../data/figures/train_montage.png")
+train_image = training_dataset.montage()
+val_image = validation_dataset.montage()
+test_image = testing_dataset.montage()
+
+train_image.save("../data/figures/train_montage.png")
+val_image.save("../data/figures/val_montage.png")
+test_image.save("../data/figures/test_montage.png")
 
 data_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=[.5], std=[.5])
 ])
 
-validation_dataset_torch = DataClass(split='val', transform=data_transform)
-training_dataset_torch = DataClass(split='train', transform=data_transform)
-testing_dataset_torch = DataClass(split='test', transform=data_transform)
+val_tensor = data_transform(val_image)
+train_tensor = data_transform(train_image)
+test_tensor = data_transform(test_image)
 
-train_loader = data.DataLoader(dataset=training_dataset_torch, shuffle=True)
-
-train_loader = data.DataLoader(dataset=training_dataset_torch, batch_size=BATCH_SIZE, shuffle=True)
-test_loader = data.DataLoader(dataset=testing_dataset, batch_size=2*BATCH_SIZE, shuffle=False)
+val_tensor_flat = val_tensor.flatten(start_dim = 1)
+train_tensor_flat = train_tensor.flatten(start_dim = 1)
+test_tensor_flat = test_tensor.flatten(start_dim = 1)
