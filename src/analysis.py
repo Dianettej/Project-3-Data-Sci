@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
 import torchvision.transforms as transforms
+from torch.utils.data import DataLoader, TensorDataset
 
 validation_dataset = DermaMNIST(split="val", download=True)
 training_dataset = DermaMNIST(split="train", download=True)
@@ -17,7 +18,6 @@ task = info['task']
 n_channels = info['n_channels']
 n_classes = 7
 
-NUM_EPOCHS = 3
 BATCH_SIZE = 128
 lr = 0.001
 
@@ -30,19 +30,60 @@ print(training_dataset)
 #size: 2005
 print(testing_dataset)
 
-image = training_dataset.montage(length=20)
-image.save("../data/figures/train_montage.png")
+train_image = training_dataset.montage()
+val_image = validation_dataset.montage()
+test_image = testing_dataset.montage()
+
+train_image.save("../data/figures/train_montage.png")
+val_image.save("../data/figures/val_montage.png")
+test_image.save("../data/figures/test_montage.png")
 
 data_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=[.5], std=[.5])
 ])
 
-validation_dataset_torch = DataClass(split='val', transform=data_transform)
-training_dataset_torch = DataClass(split='train', transform=data_transform)
-testing_dataset_torch = DataClass(split='test', transform=data_transform)
+val_tensor = data_transform(val_image)
+train_tensor = data_transform(train_image)
+test_tensor = data_transform(test_image)
 
-train_loader = data.DataLoader(dataset=training_dataset_torch, shuffle=True)
+val_tensor_flat = val_tensor.flatten(start_dim = 1)
+train_tensor_flat = train_tensor.flatten(start_dim = 1)
+test_tensor_flat = test_tensor.flatten(start_dim = 1)
 
-train_loader = data.DataLoader(dataset=training_dataset_torch, batch_size=BATCH_SIZE, shuffle=True)
-test_loader = data.DataLoader(dataset=testing_dataset, batch_size=2*BATCH_SIZE, shuffle=False)
+validation_dataset_transformed = DermaMNIST(split="val", download=True, transform=data_transform)
+training_dataset_transformed = DermaMNIST(split="train", download=True, transform=data_transform)
+testing_dataset_transformed = DermaMNIST(split="test", download=True, transform=data_transform)
+
+class MulticlassLogisticRegression(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(MulticlassLogisticRegression, self).__init__()
+        self.linear = nn.Linear(input_size, num_classes)
+    def forward(self, x):
+        out = self.linear(x)
+        return out
+
+model = MulticlassLogisticRegression(2352, n_classes)
+
+dataloader = DataLoader(training_dataset_transformed, batch_size=BATCH_SIZE, shuffle=True)
+
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Training loop
+num_epochs = 300
+for epoch in range(num_epochs):
+    for inputs, labels in dataloader:
+        # Flatten inputs for linear model
+        inputs = inputs.flatten(start_dim=1)
+        # Forward pass
+        outputs = model(inputs)
+        loss = criterion(outputs, labels.squeeze())
+ 
+        # Backward and optimize
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+ 
+    if (epoch+1) % 5 == 0:
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
