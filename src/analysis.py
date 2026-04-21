@@ -18,7 +18,7 @@ task = info['task']
 n_channels = info['n_channels']
 n_classes = 7
 
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 lr = 0.001
 
 DataClass = getattr(medmnist, info['python_class'])
@@ -85,5 +85,5 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
  
-    if (epoch+1) % 10 == 0:
+    if (epoch+1) % 5 == 0:
         print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
