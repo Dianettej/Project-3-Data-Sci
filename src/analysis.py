@@ -8,6 +8,8 @@ import torch.optim as optim
 import torch.utils.data as data
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, TensorDataset
+from ignite.metrics import *
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 validation_dataset = DermaMNIST(split="val", download=True)
 training_dataset = DermaMNIST(split="train", download=True)
@@ -74,7 +76,7 @@ test_dataloader = DataLoader(testing_dataset_transformed, batch_size=BATCH_SIZE,
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.01)
 
-"""# Training loop
+# Training loop
 num_epochs = 300
 for epoch in range(num_epochs):
     for inputs, labels in dataloader:
@@ -103,9 +105,11 @@ with torch.no_grad():
         total += labels.size(0)
         correct += (predicted == labels.squeeze()).sum().item()
     accuracy = correct / total
-    print('Accuracy:', accuracy)"""
+    print('Accuracy:', accuracy)
 
-class NeuralNetwork(nn.Module):
+cm = confusion_matrix(testing_dataset_transformed, predictions)
+
+"""class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
         self.flatten = nn.Flatten()
@@ -126,6 +130,7 @@ model = NeuralNetwork()
 
 train_images, train_labels = next(iter(dataloader))
 logits = model(train_images)
+
 pred_probab = nn.Softmax(dim=1)(logits)
 y_pred = pred_probab.argmax(1)
-print(f"Predicted class: {y_pred}")
+print(f"Predicted class: {y_pred}")"""
