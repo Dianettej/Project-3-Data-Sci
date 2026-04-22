@@ -18,7 +18,7 @@ task = info['task']
 n_channels = info['n_channels']
 n_classes = 7
 
-BATCH_SIZE = 128
+BATCH_SIZE = 256
 lr = 0.001
 
 DataClass = getattr(medmnist, info['python_class'])
@@ -59,6 +59,8 @@ class MulticlassLogisticRegression(nn.Module):
     def __init__(self, input_size, num_classes):
         super(MulticlassLogisticRegression, self).__init__()
         self.linear = nn.Linear(input_size, num_classes)
+        self.bn = nn.BatchNorm1d(input_size)
+
     def forward(self, x):
         out = self.linear(x)
         return out
@@ -66,11 +68,13 @@ class MulticlassLogisticRegression(nn.Module):
 model = MulticlassLogisticRegression(2352, n_classes)
 
 dataloader = DataLoader(training_dataset_transformed, batch_size=BATCH_SIZE, shuffle=True)
+val_dataloader = DataLoader(validation_dataset_transformed, batch_size=BATCH_SIZE, shuffle=False)
+test_dataloader = DataLoader(testing_dataset_transformed, batch_size=BATCH_SIZE, shuffle=False)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.01)
 
-# Training loop
+"""# Training loop
 num_epochs = 300
 for epoch in range(num_epochs):
     for inputs, labels in dataloader:
@@ -79,6 +83,7 @@ for epoch in range(num_epochs):
         # Forward pass
         outputs = model(inputs)
         loss = criterion(outputs, labels.squeeze())
+        
  
         # Backward and optimize
         optimizer.zero_grad()
@@ -87,3 +92,40 @@ for epoch in range(num_epochs):
  
     if (epoch+1) % 5 == 0:
         print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+with torch.no_grad():
+    correct = 0
+    total = 0
+    for inputs, labels in test_dataloader:
+        inputs = inputs.flatten(start_dim=1)
+        outputs = model(inputs)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels.squeeze()).sum().item()
+    accuracy = correct / total
+    print('Accuracy:', accuracy)"""
+
+class NeuralNetwork(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear(2352, 512),
+            nn.ReLU(),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, 7),
+        )
+
+    def forward(self, x):
+        x = self.flatten(x)
+        logits = self.linear_relu_stack(x)
+        return logits
+    
+model = NeuralNetwork()
+
+train_images, train_labels = next(iter(dataloader))
+logits = model(train_images)
+pred_probab = nn.Softmax(dim=1)(logits)
+y_pred = pred_probab.argmax(1)
+print(f"Predicted class: {y_pred}")
